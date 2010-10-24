@@ -12,6 +12,8 @@
                                               
 Backbone supplies structure to JavaScript-heavy applications by providing models key-value binding and custom events, collections with a rich API of enumerable functions, views with declarative event handling, and connects it all to your existing application over a RESTful JSON interface.
 
+This is an implementation for MooTools lovers. With the help of Jeremy Ashkenas, I've been able to dispose of the lightweight jQuery dependencies and use MooTools instead. It requires Element.Delegation from MooTools More in addition to MooTools itself.
+
 For Docs, License, Tests, and pre-packed downloads, see:
 http://documentcloud.github.com/backbone/
 
