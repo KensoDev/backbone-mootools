@@ -25,7 +25,7 @@
   if (!_ && (typeof require !== 'undefined')) _ = require("underscore")._;
 
   // For Backbone's purposes, jQuery owns the `$` variable.
-  var $ = this.jQuery;
+  //var $ = this.jQuery;
 
   // Turn on `emulateHttp` to fake `"PUT"` and `"DELETE"` requests via
   // the `_method` parameter.
@@ -528,8 +528,9 @@
   // jQuery lookup, scoped to DOM elements within the current view.
   // This should be prefered to global jQuery lookups, if you're dealing with
   // a specific view.
-  var jQueryDelegate = function(selector) {
-    return $(selector, this.el);
+  var MooToolsDelegate = function(selector) {
+    elements = $(this.el).getElements(selector);
+    return elements.length > 1 ? elements : elements[0];
   };
 
   // Cached regex to split keys for `handleEvents`.
@@ -542,8 +543,8 @@
     tagName : 'div',
 
     // Attach the jQuery function as the `$` and `jQuery` properties.
-    $       : jQueryDelegate,
-    jQuery  : jQueryDelegate,
+    $       : MooToolsDelegate,
+    MooTools: MooToolsDelegate,
 
     // **render** is the core function that your view should override, in order
     // to populate its element (`this.el`), with the appropriate HTML. The
@@ -559,8 +560,8 @@
     //
     make : function(tagName, attributes, content) {
       var el = document.createElement(tagName);
-      if (attributes) $(el).attr(attributes);
-      if (content) $(el).html(content);
+      if (attributes) $(el).setProperties(attributes); // $(el).attr(attributes);
+      if (content) $(el).set('html', content); // $(el).html(content);
       return el;
     },
 
@@ -579,7 +580,7 @@
     // `"change"` events are not delegated through the view because IE does not
     // bubble change events at all.
     handleEvents : function(events) {
-      $(this.el).unbind();
+      $(this.el).removeEvents();
       if (!(events || (events = this.events))) return this;
       for (var key in events) {
         var methodName = events[key];
@@ -587,9 +588,10 @@
         var eventName = match[1], selector = match[2];
         var method = _.bind(this[methodName], this);
         if (selector === '' || eventName == 'change') {
-          $(this.el).bind(eventName, method);
+          $(this.el).addEvent(eventName, method);
         } else {
-          $(this.el).delegate(selector, eventName, method);
+          //$(this.el).delegate(selector, eventName, method);
+          $(this.el).addEvent(eventName+":relay("+selector+")", method);
         }
       }
       return this;
@@ -659,14 +661,23 @@
       data._method = type;
       type = 'POST';
     }
-    $.ajax({
+    
+    /*$.ajax({
       url       : getUrl(model),
       type      : type,
       data      : data,
       dataType  : 'json',
       success   : success,
       error     : error
-    });
+    });*/
+    
+    new Request.JSON({
+      url         : getUrl(model),
+      method      : type,
+      data        : data,
+      onSuccess   : success,
+      onError     : error
+    }).send();
   };
 
   // Helpers
@@ -698,4 +709,4 @@
     return _.isFunction(object.url) ? object.url() : object.url;
   };
 
-})();
+})(document.id);
