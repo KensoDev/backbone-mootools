@@ -76,13 +76,13 @@ body {
 /* line 17 */
 #todoapp {
   width: 480px;
-  margin: 40px auto;
+  margin: 0 auto 40px auto;
   background: white;
   padding: 20px;
-  -moz-box-shadow: rgba(0, 0, 0, 0.3) 0 2px 4px 0;
-  -webkit-box-shadow: rgba(0, 0, 0, 0.3) 0 2px 4px 0;
-  -o-box-shadow: rgba(0, 0, 0, 0.3) 0 2px 4px 0;
-  box-shadow: rgba(0, 0, 0, 0.3) 0 2px 4px 0;
+  -moz-box-shadow: rgba(0, 0, 0, 0.2) 0 5px 6px 0;
+  -webkit-box-shadow: rgba(0, 0, 0, 0.2) 0 5px 6px 0;
+  -o-box-shadow: rgba(0, 0, 0, 0.2) 0 5px 6px 0;
+  box-shadow: rgba(0, 0, 0, 0.2) 0 5px 6px 0;
 }
 /* line 24 */
 #todoapp .title h1 {
@@ -135,6 +135,7 @@ body {
   font-size: 24px;
   border-bottom: 1px solid #cccccc;
   *zoom: 1;
+  cursor: move;
 }
 /* line 22, /opt/ree/lib/ruby/gems/1.8/gems/compass-0.10.5/frameworks/compass/stylesheets/compass/utilities/general/_clearfix.scss */
 #todoapp .content ul#todo-list li:after {
@@ -145,12 +146,12 @@ body {
   overflow: hidden;
   visibility: hidden;
 }
-/* line 62 */
+/* line 63 */
 #todoapp .content ul#todo-list li.editing {
   padding: 0;
   border-bottom: 0;
 }
-/* line 65 */
+/* line 66 */
 #todoapp .content ul#todo-list li.editing input {
   width: 466px;
   font-size: 24px;
@@ -165,19 +166,19 @@ body {
   -o-box-shadow: rgba(0, 0, 0, 0.2) 0 1px 2px 0 inset;
   box-shadow: rgba(0, 0, 0, 0.2) 0 1px 2px 0 inset;
 }
-/* line 76 */
+/* line 77 */
 #todoapp .content ul#todo-list li input[type=checkbox] {
   position: relative;
   top: 6px;
   margin: 0 10px 0 7px;
   float: left;
 }
-/* line 82 */
+/* line 83 */
 #todoapp .content ul#todo-list li.done .todo-content {
   text-decoration: line-through;
   color: #777777;
 }
-/* line 85 */
+/* line 86 */
 #todoapp .content ul#todo-list li .todo-destroy {
   position: absolute;
   right: 0px;
@@ -188,11 +189,11 @@ body {
   height: 20px;
   background: url(../images/destroy.png) no-repeat center center;
 }
-/* line 95 */
+/* line 96 */
 #todoapp .content ul#todo-list li:hover .todo-destroy {
   display: block;
 }
-/* line 98 */
+/* line 99 */
 #todoapp .content #todo-stats {
   *zoom: 1;
   margin-top: 10px;
@@ -207,36 +208,36 @@ body {
   overflow: hidden;
   visibility: hidden;
 }
-/* line 102 */
+/* line 103 */
 #todoapp .content #todo-stats .todo-count {
   display: none;
   float: left;
 }
-/* line 105 */
+/* line 106 */
 #todoapp .content #todo-stats .todo-count .number {
   font-weight: bold;
   color: #333333;
 }
-/* line 108 */
+/* line 109 */
 #todoapp .content #todo-stats .todo-clear {
   float: right;
   display: none;
 }
-/* line 111 */
+/* line 112 */
 #todoapp .content #todo-stats .todo-clear a {
   color: #777777;
   font-size: 12px;
 }
-/* line 114 */
+/* line 115 */
 #todoapp .content #todo-stats .todo-clear a:visited {
   color: #777777;
 }
-/* line 116 */
+/* line 117 */
 #todoapp .content #todo-stats .todo-clear a:hover {
   color: #336699;
 }
 
-/* line 120 */
+/* line 121 */
 #instructions {
   width: 520px;
   margin: 10px auto;
@@ -244,16 +245,20 @@ body {
   text-shadow: rgba(255, 255, 255, 0.8) 0 1px 0;
   text-align: center;
 }
-
 /* line 127 */
+#instructions li {
+  line-height: 2em;
+}
+
+/* line 130 */
 #credits {
   width: 520px;
   margin: 30px auto;
-  color: #777777;
+  color: #999999;
   text-shadow: rgba(255, 255, 255, 0.8) 0 1px 0;
   text-align: center;
 }
-/* line 133 */
+/* line 136 */
 #credits a {
-  color: #336699;
+  color: #888888;
 }

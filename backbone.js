@@ -18,14 +18,11 @@
   }
 
   // Current version of the library. Keep in sync with `package.json`.
-  Backbone.VERSION = '0.1.2';
+  Backbone.VERSION = '0.2.0';
 
   // Require Underscore, if we're on the server, and it's not already present.
   var _ = this._;
   if (!_ && (typeof require !== 'undefined')) _ = require("underscore")._;
-
-  // For Backbone's purposes, jQuery owns the `$` variable.
-  //var $ = this.jQuery;
 
   // Turn on `emulateHttp` to fake `"PUT"` and `"DELETE"` requests via
   // the `_method` parameter.
@@ -198,7 +195,7 @@
       options || (options = {});
       var model = this;
       var success = function(resp) {
-        if (!model.set(resp.model, options)) return false;
+        if (!model.set(model.parse(resp), options)) return false;
         if (options.success) options.success(model, resp);
       };
       var error = options.error && _.bind(options.error, null, model);
@@ -215,7 +212,7 @@
       if (!this.set(attrs, options)) return false;
       var model = this;
       var success = function(resp) {
-        if (!model.set(resp.model, options)) return false;
+        if (!model.set(model.parse(resp), options)) return false;
         if (options.success) options.success(model, resp);
       };
       var error = options.error && _.bind(options.error, null, model);
@@ -245,6 +242,12 @@
       var base = getUrl(this.collection);
       if (this.isNew()) return base;
       return base + '/' + this.id;
+    },
+
+    // **parse** converts a response into the hash of attributes to be `set` on
+    // the model. The default implementation is just to pass the response along.
+    parse : function(resp) {
+      return resp;
     },
 
     // Create a new model with identical attributes to this one.
@@ -410,7 +413,7 @@
       options || (options = {});
       var collection = this;
       var success = function(resp) {
-        collection.refresh(resp.models);
+        collection.refresh(collection.parse(resp));
         if (options.success) options.success(collection, resp);
       };
       var error = options.error && _.bind(options.error, null, collection);
@@ -429,6 +432,12 @@
         if (options.success) options.success(nextModel, resp);
       };
       return model.save(null, {success : success, error : options.error});
+    },
+
+    // **parse** converts a response into a list of models to be added to the
+    // collection. The default implementation is just to pass it through.
+    parse : function(resp) {
+      return resp;
     },
 
     // Proxy to _'s chain. Can't be proxied the same way the rest of the
@@ -483,20 +492,14 @@
     },
 
     // Internal method called every time a model in the set fires an event.
-    // Sets need to update their indexes when models change ids.
-    _onModelEvent : function(ev, model, error) {
-      switch (ev) {
-        case 'change':
-          if (model.hasChanged('id')) {
-            delete this._byId[model.previous('id')];
-            this._byId[model.id] = model;
-          }
-          this.trigger('change', model);
-          break;
-        case 'error':
-          this.trigger('error', model, error);
-          break;
+    // Sets need to update their indexes when models change ids. All other
+    // events simply proxy through.
+    _onModelEvent : function(ev, model) {
+      if (ev === 'change:id') {
+        delete this._byId[model.previous('id')];
+        this._byId[model.id] = model;
       }
+      this.trigger.apply(this, arguments);
     }
 
   });
@@ -522,18 +525,18 @@
   Backbone.View = function(options) {
     this._configure(options || {});
     this._ensureElement();
+    this.delegateEvents();
     if (this.initialize) this.initialize(options);
   };
 
-  // jQuery lookup, scoped to DOM elements within the current view.
-  // This should be prefered to global jQuery lookups, if you're dealing with
-  // a specific view.
+  // MooTools getElements, scoped to DOM elements within the current view.
+  // document.id should still be preferred for speed, but this works ok.
   var MooToolsDelegate = function(selector) {
     elements = $(this.el).getElements(selector);
     return elements.length > 1 ? elements : elements[0];
   };
 
-  // Cached regex to split keys for `handleEvents`.
+  // Cached regex to split keys for `delegate`.
   var eventSplitter = /^(\w+)\s*(.*)$/;
 
   // Set up all inheritable **Backbone.View** properties and methods.
@@ -543,8 +546,8 @@
     tagName : 'div',
 
     // Attach the jQuery function as the `$` and `jQuery` properties.
-    $       : MooToolsDelegate,
-    MooTools: MooToolsDelegate,
+    $         : MooToolsDelegate,
+    MooTools  : MooToolsDelegate,
 
     // **render** is the core function that your view should override, in order
     // to populate its element (`this.el`), with the appropriate HTML. The
@@ -560,8 +563,8 @@
     //
     make : function(tagName, attributes, content) {
       var el = document.createElement(tagName);
-      if (attributes) $(el).setProperties(attributes); // $(el).attr(attributes);
-      if (content) $(el).set('html', content); // $(el).html(content);
+      if (attributes) $(el).setProperties(attributes);
+      if (content) $(el).set('html', content);
       return el;
     },
 
@@ -577,20 +580,19 @@
     // pairs. Callbacks will be bound to the view, with `this` set properly.
     // Uses jQuery event delegation for efficiency.
     // Omitting the selector binds the event to `this.el`.
-    // `"change"` events are not delegated through the view because IE does not
-    // bubble change events at all.
-    handleEvents : function(events) {
-      $(this.el).removeEvents();
+    // This only works for delegate-able events: not `focus`, `blur`, and
+    // not `change`, `submit`, and `reset` in Internet Explorer.
+    delegateEvents : function(events) {
       if (!(events || (events = this.events))) return this;
+      $(this.el).removeEvents();
       for (var key in events) {
         var methodName = events[key];
         var match = key.match(eventSplitter);
         var eventName = match[1], selector = match[2];
         var method = _.bind(this[methodName], this);
-        if (selector === '' || eventName == 'change') {
+        if (selector === '') {
           $(this.el).addEvent(eventName, method);
         } else {
-          //$(this.el).delegate(selector, eventName, method);
           $(this.el).addEvent(eventName+":relay("+selector+")", method);
         }
       }
@@ -661,23 +663,14 @@
       data._method = type;
       type = 'POST';
     }
-    
-    /*$.ajax({
+    $.ajax({
       url       : getUrl(model),
       type      : type,
       data      : data,
       dataType  : 'json',
       success   : success,
       error     : error
-    });*/
-    
-    new Request.JSON({
-      url         : getUrl(model),
-      method      : type,
-      data        : data,
-      onSuccess   : success,
-      onError     : error
-    }).send();
+    });
   };
 
   // Helpers

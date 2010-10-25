@@ -14,6 +14,10 @@
   // Todo
   window.Todo = Backbone.Model.extend({
   
+    parse: function(resp) {
+      return resp.model;
+    }
+  
   });
 
   // Todo List
@@ -31,6 +35,10 @@
     
     comparator: function(todo) {
       return todo.get("order")
+    },
+    
+    parse: function(resp) {
+      return resp.models;
     }
   
   });
@@ -55,7 +63,6 @@
     initialize: function() {
       _.bindAll(this, 'toggleDone');
       this.model.bind('change:done', this.toggleDone);
-      this.handleEvents();
     },
   
     render: function() {
@@ -88,7 +95,6 @@
     },
   
     changed: function(e) {
-      console.log(e);
       if (e.code == 13) {
         var thisView = this;
         this.model.save(
@@ -99,7 +105,9 @@
             success: function(todo) {
               thisView.render();
               $(thisView.el).removeClass("editing");
-              sortableTodos.attach();
+              if ($("todoapp").getElements(".editing").length == 0) {
+                sortableTodos.attach();
+              }
               sortableTodos.addItems(thisView.el);
             }
           }
@@ -142,8 +150,6 @@
   
     initialize: function() {
       _.bindAll(this, 'addTodo', 'clearCompleted', 'showTooltip', 'createIfEnter', 'analyzeTodos');
-    
-      this.handleEvents();
     
       Todos.bind('add', this.addTodo);
     
