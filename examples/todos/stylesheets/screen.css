@@ -152,7 +152,8 @@ body {
   border-bottom: 0;
 }
 /* line 66 */
-#todoapp .content ul#todo-list li.editing input {
+#todoapp .content ul#todo-list li.editing .todo-input {
+  display: block;
   width: 466px;
   font-size: 24px;
   font-family: inherit;
@@ -166,19 +167,35 @@ body {
   -o-box-shadow: rgba(0, 0, 0, 0.2) 0 1px 2px 0 inset;
   box-shadow: rgba(0, 0, 0, 0.2) 0 1px 2px 0 inset;
 }
-/* line 77 */
-#todoapp .content ul#todo-list li input[type=checkbox] {
+/* line 78 */
+#todoapp .content ul#todo-list li.editing .todo-content {
+  display: none;
+}
+/* line 80 */
+#todoapp .content ul#todo-list li.editing .todo-check {
+  display: none;
+}
+/* line 82 */
+#todoapp .content ul#todo-list li.editing .todo-destroy {
+  display: none !important;
+}
+/* line 84 */
+#todoapp .content ul#todo-list li .todo-input {
+  display: none;
+}
+/* line 86 */
+#todoapp .content ul#todo-list li .todo-check {
   position: relative;
   top: 6px;
   margin: 0 10px 0 7px;
   float: left;
 }
-/* line 83 */
+/* line 92 */
 #todoapp .content ul#todo-list li.done .todo-content {
   text-decoration: line-through;
   color: #777777;
 }
-/* line 86 */
+/* line 95 */
 #todoapp .content ul#todo-list li .todo-destroy {
   position: absolute;
   right: 0px;
@@ -189,11 +206,11 @@ body {
   height: 20px;
   background: url(../images/destroy.png) no-repeat center center;
 }
-/* line 96 */
+/* line 105 */
 #todoapp .content ul#todo-list li:hover .todo-destroy {
   display: block;
 }
-/* line 99 */
+/* line 108 */
 #todoapp .content #todo-stats {
   *zoom: 1;
   margin-top: 10px;
@@ -208,36 +225,34 @@ body {
   overflow: hidden;
   visibility: hidden;
 }
-/* line 103 */
+/* line 112 */
 #todoapp .content #todo-stats .todo-count {
-  display: none;
   float: left;
 }
-/* line 106 */
+/* line 114 */
 #todoapp .content #todo-stats .todo-count .number {
   font-weight: bold;
   color: #333333;
 }
-/* line 109 */
+/* line 117 */
 #todoapp .content #todo-stats .todo-clear {
   float: right;
-  display: none;
 }
-/* line 112 */
+/* line 119 */
 #todoapp .content #todo-stats .todo-clear a {
   color: #777777;
   font-size: 12px;
 }
-/* line 115 */
+/* line 122 */
 #todoapp .content #todo-stats .todo-clear a:visited {
   color: #777777;
 }
-/* line 117 */
+/* line 124 */
 #todoapp .content #todo-stats .todo-clear a:hover {
   color: #336699;
 }
 
-/* line 121 */
+/* line 128 */
 #instructions {
   width: 520px;
   margin: 10px auto;
@@ -245,12 +260,12 @@ body {
   text-shadow: rgba(255, 255, 255, 0.8) 0 1px 0;
   text-align: center;
 }
-/* line 127 */
+/* line 134 */
 #instructions li {
   line-height: 2em;
 }
 
-/* line 130 */
+/* line 137 */
 #credits {
   width: 520px;
   margin: 30px auto;
@@ -258,7 +273,7 @@ body {
   text-shadow: rgba(255, 255, 255, 0.8) 0 1px 0;
   text-align: center;
 }
-/* line 136 */
+/* line 143 */
 #credits a {
   color: #888888;
 }

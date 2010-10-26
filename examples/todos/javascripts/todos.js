@@ -1,21 +1,16 @@
-/*
-
-* Reorder the todos...
-* Include a link to the (annotated) source code.
-
-*/
-
 (function(){
-
-  _.templateSettings = {
-    interpolate : /\{\{(.+?)\}\}/g
-  };
 
   // Todo
   window.Todo = Backbone.Model.extend({
   
-    parse: function(resp) {
-      return resp.model;
+    toggle: function() {
+      this.save({done: !this.get("done")});
+    },
+
+    // Remove this Todo from *localStorage*, deleting its view.
+    clear: function() {
+      this.destroy();
+      $(this.view.el).dispose();
     }
   
   });
@@ -24,21 +19,26 @@
   window.TodoList = Backbone.Collection.extend({
   
     model: Todo,
-    localStore: new Store("tasks"),
+    localStorage: new Store("todos"),
   
     // Returns all done todos.
     done: function() {
-      return this.select(function(todo){
+      return this.filter(function(todo){
         return todo.get('done');
       });
     },
-    
-    comparator: function(todo) {
-      return todo.get("order")
+
+    nextOrder: function() {
+      if (!this.length) return 1;
+      return this.last().get('order') + 1;
     },
-    
-    parse: function(resp) {
-      return resp.models;
+
+    comparator: function(todo) {
+      return todo.get('order');
+    },
+
+    pluralize: function(count) {
+      return count == 1 ? 'item' : 'items';
     }
   
   });
@@ -50,78 +50,59 @@
     tagName: "li",
     className: "todo",
   
-    template: _.template("<input type='checkbox' /><div class='todo-content'>{{ content }}</div><span class='todo-destroy'></span>"),
-    editTemplate: _.template("<input type='text' value='{{ content }}' />"),
+    template: _.template("<input type='checkbox' class='todo-check' /><div class='todo-content'></div><span class='todo-destroy'></span><input type='text' class='todo-input' />"),
   
     events: {
-      "click input[type=checkbox]": "markAsDone",
-      "dblclick div.todo-content" : "edit",
-      "click span.todo-destroy"   : "destroy",
-      "keypress input[type=text]" : "changed"
+      "click .todo-check"      : "toggleDone",
+      "dblclick .todo-content" : "edit",
+      "click .todo-destroy"    : "clear",
+      "keypress .todo-input"   : "updateOnEnter"
     },
     
     initialize: function() {
-      _.bindAll(this, 'toggleDone');
-      this.model.bind('change:done', this.toggleDone);
+      _.bindAll(this, 'render');
+      this.model.bind('change', this.render);
+      this.model.view = this;
     },
   
     render: function() {
       $(this.el).set('html', this.template(this.model.toJSON()));
-      $(this.el).setProperty("id", "todo-"+this.model.get("id"));
-      this.checkbox = $(this.el).getFirst("input[type=checkbox]");
-      this.toggleDone();
+      $(this.el).setProperty("id", "todo-"+this.model.id);
+      this.setContent();
+      sortableTodos.addItems(this.el);
       return this;
     },
   
-    toggleDone: function() {      
+    setContent: function() {      
+      var content = this.model.get('content');
+      this.$('.todo-content').set("html", content);
+      this.$('.todo-input').setProperty("value", content);
+      
       if (this.model.get('done')) {
+        this.$(".todo-check").setProperty("checked", "checked");
         $(this.el).addClass("done");
-        this.checkbox.setProperty("checked", "checked");
       } else {
+        this.$(".todo-check").removeProperty("checked");
         $(this.el).removeClass("done");
-        this.checkbox.removeProperty("checked");
       }
     },
     
-    markAsDone: function() {
-      this.model.save({ done: !this.model.get("done") });
+    toggleDone: function() {
+      this.model.toggle();
     },
   
     edit: function() {
-      $(this.el).set('html', this.editTemplate(this.model.toJSON()));
       $(this.el).addClass("editing");
-      this.updateInput = $(this.el).getFirst("input[type=text]");
-      sortableTodos.detach();
     },
   
-    changed: function(e) {
-      if (e.code == 13) {
-        var thisView = this;
-        this.model.save(
-          {
-            content: this.updateInput.get("value")
-          },
-          {
-            success: function(todo) {
-              thisView.render();
-              $(thisView.el).removeClass("editing");
-              if ($("todoapp").getElements(".editing").length == 0) {
-                sortableTodos.attach();
-              }
-              sortableTodos.addItems(thisView.el);
-            }
-          }
-        );
-      }
+    updateOnEnter: function(e) {
+      if (e.code != 13) return;
+      this.model.save({content: this.$(".todo-input").getProperty("value")});
+      $(this.el).removeClass("editing");
     },
     
-    destroy: function() {
-      var thisView = this;
-      this.model.destroy({
-        success: function(){
-          $(thisView.el).dispose();
-        }
-      });
+    clear: function() {
+      this.model.clear();
     }
   
   });
@@ -129,7 +110,7 @@
   var sortableTodos = new Sortables("todo-list", {
     constrain: true,
     clone: true,
-    handle: '.handle',
+    handle: ".todo-content",
     onComplete: function(ele){
       sortableTodos.serialize(false, function(element, index){
         todo = Todos.get(element.getProperty("id").replace("todo-", ""));
@@ -141,103 +122,70 @@
   window.AppView = Backbone.View.extend({
   
     el: $("todoapp"),
+    statsTemplate: _.template('<% if (total) { %><span class="todo-count"><span class="number"><%= remaining %></span><span class="word"> <%= remaining == 1 ? "item" : "items" %></span> left.</span><% } %><% if (done) { %><span class="todo-clear"><a href="#">Clear <span class="number-done"><%= done %> </span>completed <span class="word-done"><%= done == 1 ? "item" : "items" %></span></a></span><% } %>'),
   
     events: {
-      "keypress input#new-todo": "createIfEnter",
-      "keyup input#new-todo"   : "showTooltip",
-      "click span.todo-clear"  : "clearCompleted"
+      "keypress #new-todo" : "createOnEnter",
+      "keyup #new-todo"    : "showTooltip",
+      "click .todo-clear"  : "clearCompleted"
     },
   
     initialize: function() {
-      _.bindAll(this, 'addTodo', 'clearCompleted', 'showTooltip', 'createIfEnter', 'analyzeTodos');
+      _.bindAll(this, 'addOne', 'addAll', 'render');
     
-      Todos.bind('add', this.addTodo);
+      this.input = this.$("#new-todo");
+      
+      Todos.bind('add',     this.addOne);
+      Todos.bind('refresh', this.addAll);
+      Todos.bind('all',     this.render);
     
-      this.list = $("todo-list");
-      this.newInput = $("new-todo");
-      this.tooltip = $(this.el).getElements(".ui-tooltip-top")[0];
-      this.clearLink = this.$("span.todo-clear");
-      this.todosCountContainer = this.$("span.todo-count");
-      this.todosCount = this.$("span.todo-count .number");
+      Todos.fetch();
+    },
     
-      var addTodoProxy = this.addTodo;
-      Todos.fetch({
-        success: function(coll) {
-          todos = coll.models;
-          _.each(todos, function(todo) {
-            addTodoProxy(todo)
-          });
-        }
+    render: function() {
+      var done = Todos.done().length;
+      this.$("#todo-stats").set("html",this.statsTemplate({
+        done:       done,
+        total:      Todos.length,
+        remaining:  Todos.length - done
+      }));
+    },
+    
+    addOne: function(todo) {
+      var view = new TodoView({model: todo}).render().el;
+      this.$("#todo-list").grab(view);
+      sortableTodos.addItems(view);
+    },
+    
+    addAll: function() {
+      Todos.each(this.addOne);
+    },
+  
+    createOnEnter: function(e) {
+      if (e.code != 13) return;
+      Todos.create({
+        content: this.input.getProperty("value"),
+        done:    false
       });
-      
-      this.analyzeTodos();
-      
-      Todos.bind("add", this.analyzeTodos);
-      Todos.bind("remove", this.analyzeTodos);
-      Todos.bind("change", this.analyzeTodos);
-    },
-    
-    analyzeTodos: function() {
-      var doneCount = Todos.done().length;
-      var todoCount = Todos.length;
-      
-      var totalCount = todoCount - doneCount;
-      
-      if (todoCount > 0) {
-        this.todosCountContainer.set({styles: {display: "inline"}});
-        this.todosCount.set("html", totalCount);
-      } else {
-        this.todosCountContainer.set({styles: {display: "none"}});
-      }
-      
-      if (doneCount > 0) {
-        this.clearLink.set({styles: {display: "inline"}});
-      } else {
-        this.clearLink.set({styles: {display: "none"}});
-      }
+      this.input.setProperty("value", "");
     },
   
-    addTodo: function(todo) {
-      var view = new TodoView({model: todo});
-      this.list.grab(view.render().el);
-      sortableTodos.addItems(view.el);
-      sortableTodos.serialize(false, function(element, index){
-        todo = Todos.get(element.getProperty("id").replace("todo-", ""));
-        todo.save({"order": index});
-      });
-    },
-  
-    createIfEnter: function(e) {
-      if (e.code == 13) {
-        Todos.create({
-          content: this.newInput.getProperty("value"),
-          done: false
-        });
-        this.newInput.setProperty("value", "");
-      }
-    },
-  
-    showTooltip: function(e) {
-      this.tooltip.fade("out");
+    showTooltip: function(e) {      
+      var tooltip = this.$(".ui-tooltip-top");
+      tooltip.fade("out");
     
       if (this.tooltipTimeout) clearTimeout(this.tooltipTimeout);
-    
-      var tt = this.tooltip;
-    
-      if (this.newInput.getProperty("value") !== "" && this.newInput.getProperty("value") !== this.newInput.getProperty("placeholder")) {
+      
+      if (this.input.getProperty("value") !== "" && this.input.getProperty("value") !== this.input.getProperty("placeholder")) {
         this.tooltipTimeout = setTimeout(function(){
-          tt.fade("in");
+          tooltip.fade("in");
         }, 1000);
       }
     },
     
     clearCompleted: function() {
-      thisView = this;
-      _.each(Todos.done(), function(todo){
-        todo.destroy({success: function(todo){
-          thisView.$("#todo-"+todo.id).dispose();
-        }});
-      });
+      _.each(Todos.done(), function(todo){ todo.clear(); });
+      return false;
     }
   
   });
